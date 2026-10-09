@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+config/site.env
+logs/
+*.log
+slurm-*.out
+.DS_Store

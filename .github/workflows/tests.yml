@@ -1,0 +1,15 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "numpy>=1.26" "pandas>=2.1" "scipy>=1.11" "matplotlib>=3.8"
+      - name: Unit and integration tests
+        run: bash tests/run_tests.sh
+      - name: End-to-end test (wizard, emulated sbatch, report)
+        run: bash tests/e2e/run_e2e.sh "$RUNNER_TEMP/ad_e2e"

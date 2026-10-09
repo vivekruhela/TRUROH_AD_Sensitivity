@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tests_passed": 29,
+  "test_command": "bash tests/run_tests.sh",
+  "test_scope": "analytic Firth checks, LR vs saturated model, score gradient, exact back-transformation, delta-method contrast, catalog rules (no age/sex/PC interactions, hierarchy), APOE decoding and plausibility warnings, GLMM vs logistic ML without relatedness, GLMM family-variance recovery, CR1 sandwich, KING/GCTA readers, unrelated-set selection, F_ROH union with focal exclusion, end-to-end figures/report on a synthetic admixed family cohort, source-run immutability, profiles, SLURM submit and spooled worker",
+  "kinship_null_simulation": {
+    "Firth LRT (ignores kinship)": {
+      "replicates": 400,
+      "type_I_error_at_0.05": 0.1025,
+      "MC_SE": 0.010897247358851683
+    },
+    "Firth + cluster-robust SE": {
+      "replicates": 400,
+      "type_I_error_at_0.05": 0.0475,
+      "MC_SE": 0.010897247358851683
+    },
+    "GLMM score (kinship)": {
+      "replicates": 400,
+      "type_I_error_at_0.05": 0.06,
+      "MC_SE": 0.010897247358851683
+    },
+    "Firth, unrelated subset": {
+      "replicates": 400,
+      "type_I_error_at_0.05": 0.0475,
+      "MC_SE": 0.010897247358851683
+    },
+    "_seconds": 275.2
+  },
+  "cluster_execution": "not performed (no cluster access here)",
+  "real_individual_level_data": "not available here; example report is synthetic"
+}

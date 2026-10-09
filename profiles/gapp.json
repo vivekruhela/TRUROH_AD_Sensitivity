@@ -1,0 +1,9 @@
+{
+  "description": "GAPP / Peru (PeADI) cohort used in the paper; header FID IID Sex Age APOE_reported AD PC1..PC5. Paths are relative to a TRUROH_Ancestry checkout: run from that directory.",
+  "config": "config/gapp.json",
+  "apoe_column": "APOE_reported",
+  "apoe_fid_column": "FID",
+  "apoe_iid_column": "IID",
+  "apoe_map": "@pkg/apoe_dosage_map.json",
+  "out_name": "Peru_AD_ROH_APOE_ancestry"
+}

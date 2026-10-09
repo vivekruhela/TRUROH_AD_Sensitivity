@@ -1,0 +1,40 @@
+test_age_sex_pcs_never_interact (test_package.Catalog.test_age_sex_pcs_never_interact) ... ok
+test_interactions_are_hierarchical (test_package.Catalog.test_interactions_are_hierarchical) ... ok
+test_requested_models_present (test_package.Catalog.test_requested_models_present) ... ok
+test_apoe_decoded_and_audited (test_package.Integration.test_apoe_decoded_and_audited) ... ok
+test_audit_only_and_profile (test_package.Integration.test_audit_only_and_profile) ... ok
+test_bundled_profiles_parse (test_package.Integration.test_bundled_profiles_parse) ... ok
+test_contrast_at_zero_equals_main_coefficient (test_package.Integration.test_contrast_at_zero_equals_main_coefficient) ... ok
+test_end_to_end_outputs (test_package.Integration.test_end_to_end_outputs) ... ok
+test_origin_and_local_ancestry_frame (test_package.Integration.test_origin_and_local_ancestry_frame) ... APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+ok
+test_override_requires_map (test_package.Integration.test_override_requires_map) ... ok
+test_profile_column_names_stay_strings (test_package.Integration.test_profile_column_names_stay_strings) ... ok
+test_rejects_output_inside_run (test_package.Integration.test_rejects_output_inside_run) ... ok
+test_source_run_unchanged (test_package.Integration.test_source_run_unchanged) ... ok
+test_submit_and_spooled_worker (test_package.Integration.test_submit_and_spooled_worker) ... ok
+test_unmapped_value_and_reversed_map (test_package.Integration.test_unmapped_value_and_reversed_map) ... APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+WARNING: Implausible epsilon4 allele frequency 0.868; check the APOE map against the data dictionary.
+WARNING: Cases carry fewer epsilon4 alleles than controls; the map may be reversed.
+ok
+test_without_map_apoe_models_reported_not_dropped (test_package.Integration.test_without_map_apoe_models_reported_not_dropped) ... ok
+test_wrong_apoe_locus_file_is_explained (test_package.Integration.test_wrong_apoe_locus_file_is_explained) ... ok
+test_froh_union_and_focal_exclusion (test_package.Kinship.test_froh_union_and_focal_exclusion) ... ok
+test_gcta_grm_reader (test_package.Kinship.test_gcta_grm_reader) ... ok
+test_glmm_recovers_family_variance_and_robust_singletons (test_package.Kinship.test_glmm_recovers_family_variance_and_robust_singletons) ... ok
+test_glmm_without_relatedness_matches_logistic_ml (test_package.Kinship.test_glmm_without_relatedness_matches_logistic_ml) ... ok
+test_primary_switch (test_package.Kinship.test_primary_switch) ... ok
+test_unrelated_set_and_king_parsing (test_package.Kinship.test_unrelated_set_and_king_parsing) ... ok
+test_joint_test_against_analytic_saturated_model (test_package.Statistics.test_joint_test_against_analytic_saturated_model) ... ok
+test_multiplicity_includes_failed_tests (test_package.Statistics.test_multiplicity_includes_failed_tests) ... ok
+test_no_opaque_apoe_inference (test_package.Statistics.test_no_opaque_apoe_inference) ... ok
+test_score_matches_numerical_gradient (test_package.Statistics.test_score_matches_numerical_gradient) ... ok
+test_separation_analytic_odds_ratio (test_package.Statistics.test_separation_analytic_odds_ratio) ... ok
+test_standardisation_back_transform_is_exact (test_package.Statistics.test_standardisation_back_transform_is_exact) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 68.416s
+
+OK

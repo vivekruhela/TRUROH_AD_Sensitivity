@@ -1,0 +1,6 @@
+{
+  "description": "Caribbean Hispanic (CH) cohort used in the paper. Paths are relative to a TRUROH_Ancestry checkout: run from that directory. APOE_reported holds bare 0/1/2 codes decoded as epsilon4 dosage by the bundled map (check apoe_source_value_counts.tsv).",
+  "config": "config/ch.json",
+  "apoe_map": "@pkg/apoe_dosage_map.json",
+  "out_name": "CH_ROH_APOE_ancestry"
+}

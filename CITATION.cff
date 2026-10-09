@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying TRU-ROH manuscript and this repository."
+title: "TRU-ROH AD sensitivity: ROH x APOE x ancestry association models"
+version: 2.0.0
+date-released: 2026-10-09
+repository-code: "https://github.com/vivekruhela/TRUROH_AD_Sensitivity"
+authors:
+  - family-names: Ruhela
+    given-names: Vivek
+keywords: [runs of homozygosity, APOE, local ancestry, Alzheimer's disease, Firth regression, GLMM]

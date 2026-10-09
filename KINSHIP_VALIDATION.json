@@ -1,0 +1,23 @@
+{
+  "Firth LRT (ignores kinship)": {
+    "replicates": 400,
+    "type_I_error_at_0.05": 0.1025,
+    "MC_SE": 0.010897247358851683
+  },
+  "Firth + cluster-robust SE": {
+    "replicates": 400,
+    "type_I_error_at_0.05": 0.0475,
+    "MC_SE": 0.010897247358851683
+  },
+  "GLMM score (kinship)": {
+    "replicates": 400,
+    "type_I_error_at_0.05": 0.06,
+    "MC_SE": 0.010897247358851683
+  },
+  "Firth, unrelated subset": {
+    "replicates": 400,
+    "type_I_error_at_0.05": 0.0475,
+    "MC_SE": 0.010897247358851683
+  },
+  "_seconds": 275.2
+}

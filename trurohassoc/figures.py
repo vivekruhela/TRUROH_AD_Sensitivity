@@ -529,12 +529,10 @@ def fig_all_tests(results, out_dir):
                 labelled.append((yi, xi, i, f"{row.MODEL.split('_')[0]} {row.TEST}"))
         n_skip = int((results.FAMILY == fam).sum() - len(s))
         tick_labels.append(FAMILY_LABEL[fam].replace("\n", " ") + f"\n{len(s)} fitted" + (f", {n_skip} n.e." if n_skip else ""))
-    m = len(results)
-    ax.axhline(-np.log10(0.05), color=MUTED, lw=0.6, ls=(0, (3, 2)))
-    ax.axhline(-np.log10(0.05 / m), color=ROH_COLOR, lw=0.6, ls=(0, (3, 2)))
+    nominal = -np.log10(0.05)
+    ax.axhline(nominal, color=MUTED, lw=0.6, ls=(0, (3, 2)))
     ax.text(len(fams) - 0.45, -np.log10(0.05), "P = 0.05", fontsize=5.5, color=MUTED, va="bottom", ha="right")
-    ax.text(len(fams) - 0.45, -np.log10(0.05 / m), f"Bonferroni ({m} tests)", fontsize=5.5, color=ROH_COLOR, va="bottom", ha="right")
-    top_y = max([-np.log10(0.05 / m)] + [y for y, *_ in labelled])
+    top_y = max([nominal] + [y for y, *_ in labelled])
     placed = {}
     for yi, xi, col, lab in sorted(labelled, reverse=True)[:10]:
         ty = yi
@@ -547,7 +545,7 @@ def fig_all_tests(results, out_dir):
     ax.set_xticks(range(len(fams)), tick_labels)
     ax.tick_params(axis="x", length=0)
     ax.set_xlim(-0.6, len(fams) - 0.4)
-    top = max(-np.log10(0.05 / m), float((-np.log10(ok.P_VALUE.clip(lower=1e-300))).max()) if len(ok) else 1)
+    top = max(nominal, float((-np.log10(ok.P_VALUE.clip(lower=1e-300))).max()) if len(ok) else 1)
     ax.set_ylim(0, top * 1.15)
     ax.set_ylabel("−log$_{10}$ P")
     return save(fig, out_dir, "FigS2_all_tests_overview")

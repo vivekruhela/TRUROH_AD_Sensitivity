@@ -6,16 +6,24 @@ test_audit_only_and_profile (test_package.Integration.test_audit_only_and_profil
 test_bundled_profiles_parse (test_package.Integration.test_bundled_profiles_parse) ... ok
 test_contrast_at_zero_equals_main_coefficient (test_package.Integration.test_contrast_at_zero_equals_main_coefficient) ... ok
 test_end_to_end_outputs (test_package.Integration.test_end_to_end_outputs) ... ok
-test_origin_and_local_ancestry_frame (test_package.Integration.test_origin_and_local_ancestry_frame) ... APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+test_legacy_adjusted_columns_not_imported (test_package.Integration.test_legacy_adjusted_columns_not_imported) ... ok
+test_origin_and_local_ancestry_frame (test_package.Integration.test_origin_and_local_ancestry_frame) ... APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
 ok
 test_override_requires_map (test_package.Integration.test_override_requires_map) ... ok
+test_primary_ancestry_auto_and_explicit (test_package.Integration.test_primary_ancestry_auto_and_explicit) ... APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+NOTE primary ancestry: explicit primary ancestry NAM (0.113) is not the cohort-majority ancestry EUR (0.598); kept as the pre-specified hypothesis
+APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+NOTE primary ancestry: explicit primary ancestry AFR (0.289) is not the cohort-majority ancestry EUR (0.598); kept as the pre-specified hypothesis
+APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+ok
 test_profile_column_names_stay_strings (test_package.Integration.test_profile_column_names_stay_strings) ... ok
 test_rejects_output_inside_run (test_package.Integration.test_rejects_output_inside_run) ... ok
 test_source_run_unchanged (test_package.Integration.test_source_run_unchanged) ... ok
 test_submit_and_spooled_worker (test_package.Integration.test_submit_and_spooled_worker) ... ok
-test_unmapped_value_and_reversed_map (test_package.Integration.test_unmapped_value_and_reversed_map) ... APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
-APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
-APOE source: /tmp/truroh v2 kicihnf4/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+test_unmapped_value_and_reversed_map (test_package.Integration.test_unmapped_value_and_reversed_map) ... APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
+APOE source: /tmp/truroh v2 r2ny44yk/source phenotype.tsv; FID='FID'; IID='IID'; APOE='APOE_reported'
 WARNING: Implausible epsilon4 allele frequency 0.868; check the APOE map against the data dictionary.
 WARNING: Cases carry fewer epsilon4 alleles than controls; the map may be reversed.
 ok
@@ -28,13 +36,12 @@ test_glmm_without_relatedness_matches_logistic_ml (test_package.Kinship.test_glm
 test_primary_switch (test_package.Kinship.test_primary_switch) ... ok
 test_unrelated_set_and_king_parsing (test_package.Kinship.test_unrelated_set_and_king_parsing) ... ok
 test_joint_test_against_analytic_saturated_model (test_package.Statistics.test_joint_test_against_analytic_saturated_model) ... ok
-test_multiplicity_includes_failed_tests (test_package.Statistics.test_multiplicity_includes_failed_tests) ... ok
 test_no_opaque_apoe_inference (test_package.Statistics.test_no_opaque_apoe_inference) ... ok
 test_score_matches_numerical_gradient (test_package.Statistics.test_score_matches_numerical_gradient) ... ok
 test_separation_analytic_odds_ratio (test_package.Statistics.test_separation_analytic_odds_ratio) ... ok
 test_standardisation_back_transform_is_exact (test_package.Statistics.test_standardisation_back_transform_is_exact) ... ok
 
 ----------------------------------------------------------------------
-Ran 29 tests in 68.416s
+Ran 30 tests in 125.380s
 
 OK

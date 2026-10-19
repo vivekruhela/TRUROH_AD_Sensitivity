@@ -164,6 +164,8 @@ def main():
         primary = ask("primary", "Primary model family: firth or glmm (decide before seeing results)", "firth")
         if primary not in ("firth", "glmm"):
             raise SystemExit("primary must be firth or glmm")
+    primary_ancestry = ask("primary_ancestry", "Primary ancestry: 'auto' (highest mean global ancestry) or a label "
+                           "(blank = the TRU-ROH run's association.primary_ancestry)", "")
     inbreeding = ask("inbreeding", "Own inbreeding estimate TSV (IID, F) (blank = F_ROH from TRU-ROH regions)", "",
                      optional_file("inbreeding file"))
     apoe_la = ask("apoe_locus_la", "Local ancestry at APOE TSV from tools/make_apoe_locus_la.py (blank = skip E1 models)", "",
@@ -205,6 +207,8 @@ def main():
             profile[key] = value
     if primary != "firth":
         profile["primary"] = primary
+    if primary_ancestry:
+        profile["primary_ancestry"] = primary_ancestry
     profile["min_carriers"] = int(min_carriers)
     profile["out_name"] = out_name
 

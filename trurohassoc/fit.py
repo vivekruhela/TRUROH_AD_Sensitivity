@@ -254,11 +254,16 @@ def fit_model(data, model, core, region, args, rng=None, rel=None):
     return rows, coefficients, contrasts, predictions
 
 
+ADJUSTED_COLUMNS = ["Q_VALUE", "BONFERRONI_P", "FDR_ASSOCIATED"]
+
+
 def original_test_rows(original, hc_ids):
     import pandas as pd
     rows = []
     if original.empty or "REGION_ID" not in original:
         return rows
+    # P values are nominal: multiple-testing columns of older TRUROH runs (< 2.2.0) are not carried over
+    original = original.drop(columns=[c for c in ADJUSTED_COLUMNS if c in original])
     for record in original.loc[original.REGION_ID.isin(hc_ids)].to_dict("records"):
         row = dict(record, SOURCE="original_run", FAMILY="original_run", TEST=record.get("TESTED_TERM", "original_test"),
                    LABEL="original TRUROH model " + str(record.get("MODEL", "")),

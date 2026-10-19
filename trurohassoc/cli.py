@@ -1,4 +1,6 @@
-"""End-to-end driver: profile -> audit -> fixed catalog -> fits -> multiplicity -> figures -> report."""
+"""End-to-end driver: profile -> audit -> fixed catalog -> fits -> figures -> report.
+
+P values are nominal (unadjusted); no multiple-testing correction is applied."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +17,6 @@ from . import VERSION
 from .catalog import FAMILIES, model_catalog
 from .common import read_json, sha256, write_json, write_tsv
 from .data import ancestry_decision, carrier_diagnostics, load_run, region_frame, relatedness_diagnostics
-from .firth import adjust_all_tests
 from .fit import fit_model, formula, original_test_rows
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +24,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 PATH_KEYS = {"config", "run_dir", "out_dir", "out_parent", "apoe_map", "apoe_source", "apoe_locus_la", "kinship", "inbreeding"}
 PROFILE_KEYS = {"config", "run_dir", "out_dir", "out_parent", "out_name", "apoe_map", "apoe_column", "apoe_source",
                 "apoe_fid_column", "apoe_iid_column", "apoe_locus_la", "min_carriers", "min_interaction_cell",
-                "kinship", "inbreeding", "primary",
+                "kinship", "inbreeding", "primary", "primary_ancestry",
                 "description"}
 
 
@@ -53,6 +54,8 @@ def parse(argv=None):
     p.add_argument("--kinship", type=Path, help="KING kinship table (.kin0 / plink2 --make-king-table) or GCTA GRM prefix")
     p.add_argument("--inbreeding", type=Path, help="Optional TSV IID + F (0-1) to replace the F_ROH computed from TRUROH regions")
     p.add_argument("--primary", choices=["firth", "glmm"], help="Primary family: Firth Models 1-2 (default) or their kinship GLMM versions")
+    p.add_argument("--primary-ancestry", help='Primary ancestry (listed first): "auto" = highest mean global ancestry in '
+                   "the cohort, or an ancestry label (default: the source run's association.primary_ancestry)")
     p.add_argument("--min-carriers", type=int)
     p.add_argument("--min-interaction-cell", type=int)
     p.add_argument("--max-fit-seconds", type=float, default=120)
@@ -135,7 +138,8 @@ def main(argv=None):
 
 def run(args, root, output):
     cfg, pheno, core, hc, members, local, original, audit, extras = load_run(
-        root, output, args.apoe_map, args.apoe_overrides, args.apoe_locus_la, args.kinship, args.inbreeding)
+        root, output, args.apoe_map, args.apoe_overrides, args.apoe_locus_la, args.kinship, args.inbreeding,
+        args.primary_ancestry)
     ancestries, reference = audit["ancestries"], audit["global_reference"]
     rel = extras["relatedness"]
     models = model_catalog(core, ancestries, reference, apoe_locus=audit["apoe_locus_local_ancestry"]["available"],
@@ -168,7 +172,8 @@ def run(args, root, output):
     write_json(output / "analysis_manifest.json", manifest)
     print(f"Regions: {len(hc)}; catalog: {len(models)} models / {sum(len(m.tests) for m in models)} tests per region", flush=True)
     print(f"APOE dosage N={audit['apoe']['dosage_available_N']}; carrier N={audit['apoe']['carrier_available_N']}; "
-          f"ancestries={ancestries} (reference {reference})", flush=True)
+          f"ancestries={ancestries} (reference {reference}); primary ancestry {audit['primary_ancestry']} "
+          f"({audit['primary_ancestry_selection']['method']})", flush=True)
     print("Relatedness: " + "; ".join(f"{k}={v}" for k, v in audit["relatedness"].items() if k not in ("sha256",)), flush=True)
     if args.audit_only:
         write_json(output / "analysis_status.json", {"state": "audit_completed", "version": VERSION, "fits_performed": 0})
@@ -190,11 +195,6 @@ def run(args, root, output):
             results[key] = np.nan
         results[key] = pd.to_numeric(results[key], errors="coerce")
     results.loc[results.CONVERGED.ne(1), "P_VALUE"] = np.nan
-    adj = adjust_all_tests(results.P_VALUE)
-    results["HOLM_P_ALL"], results["BONFERRONI_P_ALL"], results["BH_Q_ALL"] = adj["HOLM"], adj["BONFERRONI"], adj["BH"]
-    results["HOLM_P_FAMILY"] = np.nan
-    for family, idx in results.groupby("FAMILY").groups.items():
-        results.loc[idx, "HOLM_P_FAMILY"] = adjust_all_tests(results.loc[idx, "P_VALUE"])["HOLM"]
     results["N_TESTS_ALL"] = len(results)
     results["NOMINAL_P_LT_0_05"] = (results.CONVERGED.eq(1) & results.P_VALUE.lt(.05)).astype(int)
     tables = output / "tables"
@@ -209,8 +209,8 @@ def run(args, root, output):
                           diagnostics, decision, frames, audit, models, args, reldiag)
     write_json(output / "analysis_status.json", {"state": "completed", "version": VERSION,
                                                  "planned_test_count": len(results), "source_run": root})
-    print(f"Completed: {len(results)} tests; {summary['converged_tests']} converged; {summary['nominal_tests']} nominal p<0.05; "
-          f"{summary['primary_holm_tests']} primary Holm<0.05.\nReport: {output / 'report.html'}", flush=True)
+    print(f"Completed: {len(results)} tests; {summary['converged_tests']} converged; {summary['nominal_tests']} nominal p<0.05 "
+          f"({summary['primary_nominal_tests']} of {summary['primary_tests']} primary).\nReport: {output / 'report.html'}", flush=True)
     return 0
 
 

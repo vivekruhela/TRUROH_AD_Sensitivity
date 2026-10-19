@@ -13,10 +13,10 @@ The completed TRU-ROH run is read-only: nothing in it is changed and no ROH stag
 simulation framework that fixed the ROH thresholds is
 [TRUROH_Simulations](https://github.com/vivekruhela/TRUROH_Simulations).
 
-> **Reporting in the paper.** Cohort sizes give little power after multiple-testing correction, so the
-> manuscript reports **nominal** associations (P < 0.05) and looks for models that replicate across cohorts
-> (Caribbean Hispanic and Peruvian). The package still writes Holm/Bonferroni/BH-adjusted values for
-> every test (`tables/all_association_tests.tsv`) so that readers can apply any correction.
+> **Nominal P values.** P values are nominal (unadjusted); no multiple-testing correction is applied because
+> the number of individuals and ROH regions gives no power after correction. The manuscript reports nominal
+> associations (P < 0.05); interpret them as exploratory and look for replication across cohorts (Caribbean
+> Hispanic and Peruvian). `tables/all_association_tests.tsv` flags them in `NOMINAL_P_LT_0_05`.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ bash submit.sh --profile my_cohort
 |---|---|
 | TRU-ROH run | the TRUROH_Ancestry cohort JSON or its output directory (state and number of high-confidence regions are shown) |
 | APOE | source table (default: the phenotype file used by TRU-ROH); column; code map. Observed values are listed; bare `0/1/2` codes default to the bundled ε4-dosage map, genotype strings (`e3/e4`, `34`) need no map |
-| Relatedness / optional | kinship file, primary family (`firth` or `glmm`, fixed before seeing results), own inbreeding estimate, APOE-locus local ancestry, minimum carriers |
+| Relatedness / optional | kinship file, primary family (`firth` or `glmm`, fixed before seeing results), primary ancestry (`auto` or a label; blank = the run's setting), own inbreeding estimate, APOE-locus local ancestry, minimum carriers |
 | Output | parent directory and folder name (a UTC time stamp is appended; nothing is overwritten) |
 | SLURM / software | partition, account, constraint (blank = omitted), CPUs, memory, time, modules, conda environment, Python |
 
@@ -194,6 +194,17 @@ AD odds ratio for carriers whose homozygous haplotype is Native American vs Euro
 supply local ancestry at APOE, **E1** (Fig. 3d–e). This is association with AD status in a case-control
 sample; it cannot address progression.
 
+### Primary ancestry (`--primary-ancestry`, profile key `primary_ancestry`)
+
+The primary ancestry is listed first in the catalog, tables and figures, and the report's key results always
+show its local-ancestry (L1) and haplotype-origin (L5) estimates. It does not change which models are fitted.
+`auto` selects the ancestry with the highest mean global ancestry (`Q_K`) over the prepared cohort; the outcome
+is never used. A top-two margin below 0.05 is flagged as a close call. An explicit label (aliases such as
+`African` → `AFR` are accepted) is kept as the pre-specified hypothesis, with a note when it is not the cohort
+majority. By default the source run's `association.primary_ancestry` is used (TRUROH_Ancestry ≥ 2.2.0 also
+accepts `auto`); runs without one default to `auto`. The choice and the per-ancestry means are written to
+`input_audit.json` and `summary.json` (`primary_ancestry`, `primary_ancestry_selection`).
+
 ## Figures (`figures/`, each as PDF, SVG, 600-dpi PNG and TIFF)
 
 | File | Content |
@@ -202,7 +213,7 @@ sample; it cannot address progression.
 | `Fig2_APOE_and_ROHxAPOE_<region>` | a APOE ε4 ORs; b ROH OR at 0/1/2 ε4 alleles + ε4 strata; c g-computed P(AD) by ROH × ε4 |
 | `Fig3_ancestry_effects_<region>` | a global/local ancestry ORs (with/without global); b ROH OR vs local ancestry; c ROH OR by haplotype origin; d APOE OR vs global ancestry; e APOE OR by local ancestry at APOE; f ROH OR vs global ancestry |
 | `FigS1_data_overview_<region>` | local-ancestry dosage by carrier status, local vs global ancestry, AD fraction by ε4 × ROH, carriers by origin |
-| `FigS2_all_tests_overview` | −log10 P of every test by family with nominal and Bonferroni lines |
+| `FigS2_all_tests_overview` | −log10 P of every test by family with a nominal P = 0.05 line |
 
 Style: 183 mm width, Arial/Helvetica (Liberation Sans fallback) 5–7 pt, embedded TrueType fonts (editable in
 Illustrator), Okabe-Ito colours with every colour also labelled, OR on log axes, extrapolated estimates
@@ -214,12 +225,12 @@ shown open/dashed rather than hidden. Report captions are draft legends.
   penalty; Wald 95 % CIs; contrasts (e.g. ROH OR at ε4 = 2) by the delta method; predicted risks by
   g-computation with 2,000 coefficient draws.
 * Support rules fixed in advance: ≥3 carriers and non-carriers; ≥5 carriers per modifier level for
-  interactions and origin models; otherwise the model is reported as not estimable (never dropped) and
-  counts as P = 1 in multiplicity correction.
-* Multiplicity: the three primary tests (P1 ROH, P2 interaction, P2 2-df) are Holm-corrected within the
-  primary family. All other tests are exploratory and carry raw P, within-family Holm P and catalog-wide
-  Holm/Bonferroni/BH values (`tables/all_association_tests.tsv`). The APOE main effect is a positive control,
-  so it sits in the `apoe` family, not the primary family.
+  interactions and origin models; otherwise the model is reported as not estimable (never dropped).
+* No multiple-testing correction: P values are nominal (unadjusted) because the number of individuals and ROH
+  regions gives no power after correction. The three primary tests (P1 ROH, P2 interaction, P2 2-df) are
+  pre-specified; all other tests are exploratory. Interpret associations as exploratory and look for replication
+  across cohorts. The APOE main effect is a positive control, so it sits in the `apoe` family, not the primary
+  family.
 * Relatedness: see "Kinship / relatedness". The GLMM uses PQL, which can underestimate the kinship variance for
   binary traits; the score tests are the GMMAT/SAIGE standard but asymptotic.
 
@@ -227,7 +238,8 @@ shown open/dashed rather than hidden. Report captions are draft legends.
 
 `run_manifest.json`, `final_status.json`, `config.resolved.json`, `inputs/phenotypes_prepared.tsv`,
 `results/regions_scored.tsv`, `results/members.tsv.gz`, and if present `results/global_ancestry.tsv`,
-`results/local_ancestry_for_association.tsv.gz`, `results/associations.tsv` (original tests, imported).
+`results/local_ancestry_for_association.tsv.gz`, `results/associations.tsv` (original tests, imported;
+`Q_VALUE`, `BONFERRONI_P` and `FDR_ASSOCIATED` from TRUROH runs older than 2.2.0 are not carried over).
 APOE is read from the saved `phenotype_file` / `columns.apoe_genotype` unless the profile or CLI overrides
 the source, column or ID headers.
 
@@ -299,7 +311,7 @@ codes). It checks the following:
 It was also run on the output of the TRUROH_Ancestry end-to-end test (real PLINK/BCFtools calls on a
 synthetic cohort).
 
-Unit tests (`tests/run_tests.sh`): 29 tests, including GLMM = logistic ML when there is no relatedness, recovery of
+Unit tests (`tests/run_tests.sh`): 30 tests, including primary-ancestry `auto` / explicit selection, including GLMM = logistic ML when there is no relatedness, recovery of
 family variance, sandwich formula, KING and GCTA readers, unrelated-set selection, F_ROH interval union; analytic Firth solutions, LR test vs saturated model, score
 gradient, exact back-transformation of standardized fits, contrast = coefficient at modifier 0, catalog
 rules (no age/sex/PC interactions; hierarchy), APOE decoding/audit/warnings, source-run immutability,

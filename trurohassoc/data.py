@@ -17,7 +17,56 @@ REQUIRED = ["run_manifest.json", "final_status.json", "config.resolved.json",
 OPTIONAL = ["results/global_ancestry.tsv", "results/local_ancestry_for_association.tsv.gz", "results/associations.tsv"]
 
 
-def load_run(root, output, apoe_map=None, apoe_overrides=None, apoe_locus_la=None, kinship=None, inbreeding=None):
+PRIMARY_CLOSE_MARGIN = 0.05   # top-two mean global ancestry closer than this -> "auto" choice is flagged as a close call
+
+
+def resolve_primary_ancestry(requested, ancestries, pheno, root):
+    """Primary ancestry of the analysis: listed first in the catalog, tables and report.
+
+    Explicit value: used as given (a pre-specified hypothesis); a note is recorded when it is not the cohort-majority
+    ancestry. "auto": the ancestry with the highest mean global ancestry (Q_K) over the prepared cohort; never uses
+    the outcome. Without global ancestry, "auto" uses the source run's results/primary_ancestry_selection.json
+    (TRUROH >= 2.2.0), else the first configured ancestry. Returns (ancestry, info)."""
+    auto = str(requested).strip().casefold() == "auto"
+    configured = "auto" if auto else ALIASES.get(str(requested).strip(), str(requested).strip())
+    if not auto and configured not in ancestries:
+        raise ValueError(f'primary ancestry must be "auto" or one of {ancestries}, not {requested!r}')
+    info = {"configured": configured, "method": "auto" if auto else "explicit", "candidates": list(ancestries),
+            "statistic": "mean global ancestry over the prepared cohort", "close_margin": PRIMARY_CLOSE_MARGIN,
+            "notes": []}
+    means = {a: float(pheno["Q_" + a].mean()) for a in ancestries if "Q_" + a in pheno}
+    if not means:
+        selected, source = configured, None
+        if auto:
+            run_choice = root / "results/primary_ancestry_selection.json"
+            selected = read_json(run_choice).get("selected") if run_choice.is_file() else None
+            if selected in ancestries:
+                source = str(run_choice)
+            else:
+                selected = ancestries[0]
+                info["notes"].append(f"global ancestry unavailable; using the first configured ancestry {selected}")
+        info.update(selected=selected, source=source, majority=None, mean_global_ancestry=None)
+        return selected, info
+    ranked = sorted(((v, a) for a, v in means.items()), reverse=True)
+    majority = ranked[0][1]
+    margin = ranked[0][0] - ranked[1][0] if len(ranked) > 1 else None
+    selected = majority if auto else configured
+    if auto and margin is not None and margin < PRIMARY_CLOSE_MARGIN:
+        info["notes"].append(f"close call: {ranked[0][1]} {ranked[0][0]:.3f} vs {ranked[1][1]} {ranked[1][0]:.3f}; "
+                             "consider setting the primary ancestry explicitly")
+    if not auto and configured != majority:
+        info["notes"].append(f"explicit primary ancestry {configured} ({means.get(configured, np.nan):.3f}) is not the "
+                             f"cohort-majority ancestry {majority} ({ranked[0][0]:.3f}); kept as the pre-specified hypothesis")
+    info.update(selected=selected, source="results/global_ancestry.tsv", majority=majority,
+                top_two_margin=None if margin is None else round(margin, 4),
+                mean_global_ancestry={a: round(v, 4) for v, a in ranked})
+    for note in info["notes"]:
+        print("NOTE primary ancestry: " + note, flush=True)
+    return selected, info
+
+
+def load_run(root, output, apoe_map=None, apoe_overrides=None, apoe_locus_la=None, kinship=None, inbreeding=None,
+             primary_ancestry=None):
     root = Path(root)
     for path in REQUIRED:
         if not (root / path).is_file():
@@ -87,6 +136,9 @@ def load_run(root, output, apoe_map=None, apoe_overrides=None, apoe_locus_la=Non
     if q_available and reference not in q_available:
         reference = q_available[-1]
     ancestries = [a for a in ancestries if (not q_available) or a in q_available] or q_available
+    primary_ancestry, primary_info = resolve_primary_ancestry(
+        primary_ancestry or cfg.get("association", {}).get("primary_ancestry") or "auto", ancestries, pheno, root)
+    ancestries = [primary_ancestry] + [a for a in ancestries if a != primary_ancestry]
 
     # ---- optional local ancestry at the APOE locus (chr19:44.9 Mb), e.g. from RFMix .msp
     apoe_la_info = {"file": None, "available": False}
@@ -131,6 +183,7 @@ def load_run(root, output, apoe_map=None, apoe_overrides=None, apoe_locus_la=Non
                  controls=int(pheno.AD.eq(0).sum()), high_confidence_regions=len(hc), candidate_regions=len(scored),
                  configured_covariates=core, age_center_years=age_center, age_unit_years=10,
                  global_reference=reference, ancestries=ancestries, global_ancestry_available=bool(q_available),
+                 primary_ancestry=primary_ancestry, primary_ancestry_selection=primary_info,
                  local_ancestry_rows=len(local), apoe=apoe_audit, apoe_locus_local_ancestry=apoe_la_info,
                  relatedness=rel_summary, froh=froh_info, locked=manifest.get("locked"), input_files=inputs)
     write_json(output / "input_audit.json", audit)

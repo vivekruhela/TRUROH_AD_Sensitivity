@@ -72,25 +72,3 @@ def exp_safe(value):
     if not np.isfinite(value):
         return math.nan
     return math.exp(value) if value < 709 else math.inf
-
-
-def adjust_all_tests(values):
-    """Holm / Bonferroni / BH. Unavailable tests enter the denominator as p=1 (conservative)."""
-    values = np.asarray(values, float)
-    valid = np.isfinite(values)
-    if np.any((values[valid] < 0) | (values[valid] > 1)):
-        raise ValueError("A p-value is outside [0,1]")
-    padded = np.where(valid, values, 1.0)
-    m = len(padded)
-    if not m:
-        return {k: np.array([]) for k in ("HOLM", "BONFERRONI", "BH")}
-    order = np.argsort(padded, kind="stable")
-    ordered = padded[order]
-    holm = np.empty(m)
-    holm[order] = np.minimum(1.0, np.maximum.accumulate(ordered * np.arange(m, 0, -1)))
-    bh = np.empty(m)
-    bh[order] = np.minimum(1.0, np.minimum.accumulate((ordered * m / np.arange(1, m + 1))[::-1])[::-1])
-    bonf = np.minimum(1.0, padded * m)
-    for result in (holm, bh, bonf):
-        result[~valid] = np.nan
-    return dict(HOLM=holm, BONFERRONI=bonf, BH=bh)

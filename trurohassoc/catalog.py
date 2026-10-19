@@ -18,7 +18,7 @@ import numpy as np
 from .common import unique
 
 FAMILIES = {
-    "primary": "Pre-specified primary hypotheses (Holm within family)",
+    "primary": "Pre-specified primary hypotheses (nominal P)",
     "apoe": "APOE coding / stratified sensitivity",
     "global_ancestry": "Global ancestry adjustment and ancestry-specific APOE / ROH effects",
     "local_ancestry": "Local ancestry at the ROH locus and ancestral origin of the ROH haplotype",

@@ -21,7 +21,7 @@ CAPTIONS = {
              "PC1–5 + APOE ε4 dosage. Other rows show the original TRUROH estimates, alternative APOE codings, the same "
              "covariates on the APOE-typed subset (isolates the sample change), APOE strata, and adjustment for global "
              "ancestry and for local ancestry at the ROH locus. P values are penalized likelihood-ratio tests (Fisher "
-             "exact for the 2×2 row), unadjusted for multiplicity; adjusted values are in the tables."),
+             "exact for the 2×2 row) and are nominal (no multiple-testing correction)."),
     "Fig2": ("APOE ε4 and its interaction with ROH.",
              "a, APOE ε4 odds ratios from Model 1 (dosage) and alternative codings. b, ROH odds ratio at 0, 1 and 2 ε4 "
              "alleles from Model 2 (ROH × APOE ε4 dosage; delta-method 95% CIs), with ε4-stratified estimates for "
@@ -44,9 +44,9 @@ CAPTIONS = {
               "component (r, Pearson correlation; carriers highlighted). c, Observed AD fraction (cases/N) by ε4 dosage "
               "and ROH status. d, ROH carriers by ancestral origin of the homozygous haplotype and AD status."),
     "FigS2": ("Every planned test.",
-              "−log10 P for every converged test in each pre-defined family (jittered). Dashed lines: nominal P = 0.05 and "
-              "Bonferroni threshold over all planned tests. Tests that could not be estimated are counted under each family "
-              "and enter the multiplicity correction as P = 1."),
+              "−log10 P for every converged test in each pre-defined family (jittered). Dashed line: nominal P = 0.05. "
+              "P values are nominal (no multiple-testing correction). Tests that could not be estimated are counted under "
+              "each family but not plotted."),
 }
 
 
@@ -70,7 +70,7 @@ def _table(frame, cols, digits=3):
         return "<p class='muted'>None.</p>"
     out = frame[cols].copy()
     for c in cols:
-        if c in ("P_VALUE", "HOLM_P_FAMILY", "HOLM_P_ALL", "BH_Q_ALL", "WALD_P"):
+        if c in ("P_VALUE", "WALD_P"):
             out[c] = out[c].map(lambda v: fmt_p_plain(v) if pd.notna(v) else "—")
         elif pd.api.types.is_float_dtype(out[c]):
             out[c] = out[c].map(lambda v: f"{v:.{digits}g}" if pd.notna(v) else "—")
@@ -102,13 +102,25 @@ def findings(results, coefs, decision, region, ancestries, audit):
         lines.append(f"APOE ε4 (per allele) in Model 1: {_or_text(a1)}.")
     if p2 is not None:
         lines.append(f"<b>Model 2</b> ROH × APOE ε4 interaction: " + (
-            f"ratio of ORs {p2.OR:.2f} (95% CI {p2.CI_LOW:.2f}–{p2.CI_HIGH:.2f}; P = {fmt_p_plain(p2.P_VALUE)}; "
-            f"family-wise Holm P = {fmt_p_plain(p2.HOLM_P_FAMILY)})." if np.isfinite(p2.get("OR", np.nan))
+            f"ratio of ORs {p2.OR:.2f} (95% CI {p2.CI_LOW:.2f}–{p2.CI_HIGH:.2f}; P = {fmt_p_plain(p2.P_VALUE)})." if np.isfinite(p2.get("OR", np.nan))
             else str(p2.STATUS).replace("_", " ") + f" — {p2.DETAIL}"))
     k1, k5 = _one(results, "K1_P1_GLMM", "ROH", region), _one(results, "K5_P1_unrelated", "ROH", region)
     if k1 is not None and k1.CONVERGED == 1:
         lines.append(f"Accounting for kinship (GLMM, kinship variance τ = {k1.GLMM_TAU:.2f}): ROH {_or_text(k1)}"
                      + (f"; unrelated subset (N = {int(k5.N):,}, {int(k5.CARRIERS)} carriers): ROH {_or_text(k5)}." if k5 is not None and k5.CONVERGED == 1 else "."))
+    pa, sel = audit.get("primary_ancestry"), audit.get("primary_ancestry_selection") or {}
+    if pa:
+        how = ("auto: highest mean global ancestry" + (f", {sel['mean_global_ancestry'][pa]:.2f}"
+                                                       if (sel.get("mean_global_ancestry") or {}).get(pa) is not None else "")
+               if sel.get("method") == "auto" else "pre-specified")
+        parts = []
+        for model, test, what in [(f"L1_{pa}_local", f"LAD_{pa}", f"local {pa} at ROH locus (per haplotype, given global)"),
+                                  (f"L5_{pa}_origin", f"ROH_O_{pa}", f"{pa}-origin ROH haplotype vs other origins")]:
+            row = _one(results, model, test, region)
+            if row is not None and row.CONVERGED == 1 and np.isfinite(row.P_VALUE):
+                parts.append(f"{what}: {_or_text(row)}")
+        lines.append(f"<b>Primary ancestry {html.escape(pa)}</b> ({how})" + (": " + "; ".join(parts) if parts else "")
+                     + "." + "".join(f" Note: {html.escape(n)}." for n in sel.get("notes", [])))
     anc = []
     for a in ancestries:
         for model, test, what in [(f"G1_{a}_adjust", f"Q10_{a}", f"global {a} (per 10%)"),
@@ -123,7 +135,7 @@ def findings(results, coefs, decision, region, ancestries, audit):
         anc.sort(key=lambda x: x[0])
         top = anc[:4]
         lines.append("Smallest ancestry-related P values (exploratory; see tables for all): " + "; ".join(
-            f"{w}: OR {r.OR:.2f} (P = {fmt_p_plain(p)}, catalog-wide Holm P = {fmt_p_plain(r.HOLM_P_ALL)})" for p, w, r in top) + ".")
+            f"{w}: OR {r.OR:.2f} (P = {fmt_p_plain(p)})" for p, w, r in top) + ".")
     return lines
 
 
@@ -193,8 +205,9 @@ def make_report(output, results, coefs, contrasts, preds, diagnostics, decision,
     summary = dict(project=audit["project"], cohort=audit["cohort"], version=VERSION, status="completed",
                    regions=list(frames), planned_tests=len(results), converged_tests=int(eligible.sum()),
                    nominal_tests=int((eligible & results.P_VALUE.lt(.05)).sum()),
-                   primary_tests=len(primary), primary_holm_tests=int((primary.CONVERGED.eq(1) & primary.HOLM_P_FAMILY.lt(.05)).sum()),
-                   catalog_holm_tests=int((eligible & results.HOLM_P_ALL.lt(.05)).sum()),
+                   primary_ancestry=audit.get("primary_ancestry"),
+                   primary_ancestry_selection=audit.get("primary_ancestry_selection"),
+                   primary_tests=len(primary), primary_nominal_tests=int((primary.CONVERGED.eq(1) & primary.P_VALUE.lt(.05)).sum()),
                    apoe=dict((k, audit["apoe"].get(k)) for k in ("dosage_available_N", "carrier_available_N",
                                                                   "epsilon4_allele_frequency", "warnings", "mapping_file")),
                    figures={f"{tag}:{reg}": {k: str(v) for k, v in paths.items()} for tag, reg, paths in figures})
@@ -206,9 +219,9 @@ def make_report(output, results, coefs, contrasts, preds, diagnostics, decision,
         fl = findings(results, coefs, decision, region, ancestries, audit)
         md += [f"## {region}", ""] + ["- " + html.unescape(x.replace("<b>", "**").replace("</b>", "**")) for x in fl] + [""]
         blocks.append((region, fl))
-    md += ["Primary family (Models 1 and 2) is Holm-corrected within family; every other test is exploratory and is also",
-           "reported with a catalog-wide Holm correction. Cross-sectional case-control data describe association, not",
-           "progression or causation."]
+    md += ["P values are nominal (unadjusted); no multiple-testing correction is applied because the number of individuals",
+           "and ROH regions gives no power after correction. Interpret associations as exploratory and look for replication",
+           "across cohorts. Cross-sectional case-control data describe association, not progression or causation."]
     (output / "interpretation.md").write_text("\n".join(md) + "\n")
 
     apoe = audit["apoe"]
@@ -228,7 +241,7 @@ def make_report(output, results, coefs, contrasts, preds, diagnostics, decision,
                         f"{html.escape(title)}</b>{' (' + html.escape(region) + ')' if region else ''} {html.escape(caption)}"
                         f"<div class='links'>{links}</div></figcaption></figure>")
     key_cols = ["REGION_ID", "MODEL", "LABEL", "TEST", "N", "CARRIER_CASES", "CARRIER_CONTROLS", "OR", "CI_LOW", "CI_HIGH",
-                "P_VALUE", "HOLM_P_FAMILY", "HOLM_P_ALL", "STATUS", "DETAIL"]
+                "P_VALUE", "STATUS", "DETAIL"]
     sections = []
     for region, fl in blocks:
         sections.append(f"<h3>{html.escape(region)}</h3><ul>" + "".join(f"<li>{x}</li>" for x in fl) + "</ul>")
@@ -257,12 +270,13 @@ details{{margin:10px 0}} summary{{cursor:pointer;font-weight:600}} code{{backgro
 <div class="kpi"><b>{audit['high_confidence_regions']}</b><span>retained ROH regions</span></div>
 <div class="kpi"><b>{apoe.get('dosage_available_N', 0):,}</b><span>APOE ε4 dosage decoded</span></div>
 <div class="kpi"><b>{(apoe.get('epsilon4_allele_frequency') or float('nan')):.3f}</b><span>ε4 allele frequency</span></div>
+<div class="kpi"><b>{html.escape(str(audit.get('primary_ancestry')))}</b><span>primary ancestry ({html.escape(str((audit.get('primary_ancestry_selection') or {}).get('method')))})</span></div>
 <div class="kpi"><b>{len(results)}</b><span>planned tests ({summary['converged_tests']} fitted)</span></div>
 </div>{warn}
 <h2>Key results</h2>{''.join(sections)}
-<p class="muted">Primary hypotheses (Model 1 ROH effect, Model 2 ROH×APOE) are Holm-corrected within their family. Every
-other test is exploratory: it is reported with its raw P, a within-family Holm P and a catalog-wide Holm P, and should be
-described as such. Case-control data show association with AD status; they cannot establish effects on progression.</p>
+<p class="muted">P values are nominal (unadjusted); no multiple-testing correction is applied because the number of
+individuals and ROH regions gives no power after correction. Interpret associations as exploratory and look for replication
+across cohorts. Case-control data show association with AD status; they cannot establish effects on progression.</p>
 <h2>Figures</h2>{''.join(fig_html) if fig_html else '<p class="muted">Figures disabled.</p>'}
 <h2>Should global ancestry be included with local ancestry?</h2>{ga}
 <h2>Relatedness (kinship)</h2>{relatedness_section(results, reldiag, audit, args)}
@@ -296,14 +310,14 @@ Relatedness was addressed with a logistic mixed model including a genetic relati
 a maximal unrelated subset, and adjustment for genome-wide autozygosity (F<sub>ROH</sub>, excluding the tested region).
 Covariate-standardized risks were obtained by g-computation. All tests were two-sided; the model catalog was fixed before
 fitting; models lacking support (fewer than {args.min_carriers} carriers or non-carriers, or fewer than {args.min_interaction_cell}
-carriers per modifier level for interactions) are reported as not estimable and enter multiplicity correction as P = 1.
-The two primary tests were Holm-corrected within their family; all other tests are exploratory and are reported with
-within-family and catalog-wide Holm corrections.</p>
+carriers per modifier level for interactions) are reported as not estimable. P values are nominal; no multiple-testing
+correction was applied because the number of individuals and ROH regions gives no power after correction, so associations
+are exploratory and were assessed for replication across cohorts.</p>
 <h2>Limitations</h2><ul>
 <li>One retained region with few carriers: interaction and origin-specific estimates have wide intervals; non-estimable cells are reported, not dropped.</li>
 <li>The GLMM uses PQL, which can underestimate the kinship variance for binary traits; its score tests are the GMMAT/SAIGE standard but are asymptotic.</li>
 <li>Wald intervals and asymptotic LR P values are approximate with sparse cells.</li>
-<li>Correction covers this catalog plus imported original tests, not earlier or later unrecorded analyses.</li>
+<li>P values are nominal (no multiple-testing correction); with many tests some nominal associations are expected by chance, so replication across cohorts is required.</li>
 <li>Associations from case-control status; no inference about disease progression or causality.</li></ul>
 <h2>Files</h2><p><code>tables/all_association_tests.tsv</code> (every test), <code>tables/all_coefficients.tsv</code> (every term, natural units),
 <code>tables/effect_contrasts.tsv</code>, <code>tables/predicted_risk.tsv</code>, <code>tables/ancestry_collinearity.tsv</code>,

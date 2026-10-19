@@ -79,11 +79,6 @@ class Statistics(unittest.TestCase):
         direct = firth.firth_optimize(raw, d.AD.to_numpy(float), max_iter=5000)
         np.testing.assert_allclose((full["beta"] / scale)[1:], direct["beta"][1:], atol=2e-4)
 
-    def test_multiplicity_includes_failed_tests(self):
-        out = firth.adjust_all_tests([.01, .04, np.nan])
-        np.testing.assert_allclose(out["HOLM"], [.03, .08, np.nan], equal_nan=True)
-        np.testing.assert_allclose(out["BH"], [.03, .06, np.nan], equal_nan=True)
-
     def test_no_opaque_apoe_inference(self):
         for value in ["0", "1", "2", "4", "C0", "-9"]:
             self.assertTrue(np.isnan(apoe.decode_genotype(value)))
@@ -221,7 +216,16 @@ class Integration(unittest.TestCase):
         self.assertEqual(p1.FAMILY, "primary")
         self.assertEqual(tests[(tests.MODEL == "P1_ROH_cov_APOE") & (tests.TEST == "APOE4")].FAMILY.iloc[0], "apoe")
         self.assertEqual(int((tests.FAMILY == "primary").sum()), 3)
-        self.assertTrue(tests.HOLM_P_ALL.dropna().ge(tests.P_VALUE.dropna().loc[tests.HOLM_P_ALL.dropna().index]).all())
+        # v2.1.0: P values are nominal; no multiple-testing correction columns are written
+        for removed in ["HOLM_P_ALL", "BONFERRONI_P_ALL", "BH_Q_ALL", "HOLM_P_FAMILY"]:
+            self.assertNotIn(removed, tests.columns)
+        nominal = (tests.CONVERGED.eq(1) & tests.P_VALUE.lt(.05)).astype(int)
+        self.assertTrue(tests.NOMINAL_P_LT_0_05.eq(nominal).all())
+        summary = common.read_json(self.full / "summary.json")
+        self.assertNotIn("primary_holm_tests", summary)
+        self.assertNotIn("catalog_holm_tests", summary)
+        self.assertEqual(summary["nominal_tests"], int(nominal.sum()))
+        self.assertEqual(summary["primary_nominal_tests"], int(nominal[tests.FAMILY == "primary"].sum()))
         for stem in ["Fig1_ROH_main_effect", "Fig2_APOE_and_ROHxAPOE", "Fig3_ancestry_effects", "FigS1_data_overview"]:
             for ext in ["pdf", "svg", "png", "tiff"]:
                 self.assertTrue(list((self.full / "figures").glob(f"{stem}_*.{ext}")), (stem, ext))
@@ -229,6 +233,9 @@ class Integration(unittest.TestCase):
         page = (self.full / "report.html").read_text()
         self.assertIn("Should global ancestry be included", page)
         self.assertIn("data:image/png;base64", page)
+        self.assertNotIn("Holm", page)
+        self.assertNotIn("Bonferroni", page)
+        self.assertIn("no multiple-testing correction", page)
         self.assertEqual(common.read_json(self.full / "analysis_status.json")["state"], "completed")
 
     def test_contrast_at_zero_equals_main_coefficient(self):
@@ -284,6 +291,36 @@ class Integration(unittest.TestCase):
         self.assertTrue(np.isin(carriers.LAD_NAM, [0, 2]).all())   # homozygous ancestry
         self.assertEqual(int(carriers[["ROH_O_NAM", "ROH_O_EUR", "ROH_O_AFR"]].sum(axis=1).sum()), len(carriers))
         self.assertTrue(d.loc[d.ROH.eq(0), "ROH_O_NAM"].eq(0).all())
+
+    def test_primary_ancestry_auto_and_explicit(self):
+        out = self.base / "primary_anc"
+        out.mkdir(exist_ok=True)
+        *_, audit, _ = load_run(self.rundir, out, self.base / "map.json")
+        sel = audit["primary_ancestry_selection"]
+        means = sel["mean_global_ancestry"]
+        self.assertEqual(sel["method"], "auto")
+        self.assertEqual(audit["primary_ancestry"], max(means, key=means.get))
+        self.assertEqual(audit["ancestries"][0], audit["primary_ancestry"])
+        minority = min(means, key=means.get)
+        *_, audit, _ = load_run(self.rundir, out, self.base / "map.json", primary_ancestry=minority)
+        self.assertEqual(audit["primary_ancestry"], minority)
+        self.assertEqual(audit["ancestries"][0], minority)
+        self.assertTrue(any("not the cohort-majority" in n for n in audit["primary_ancestry_selection"]["notes"]))
+        *_, audit, _ = load_run(self.rundir, out, self.base / "map.json", primary_ancestry="African")
+        self.assertEqual(audit["primary_ancestry"], "AFR")
+        with self.assertRaises(ValueError):
+            load_run(self.rundir, out, self.base / "map.json", primary_ancestry="EAS")
+        summary = common.read_json(self.full / "summary.json")
+        self.assertEqual(summary["primary_ancestry"], max(means, key=means.get))
+        self.assertIn("Primary ancestry", (self.full / "report.html").read_text())
+
+    def test_legacy_adjusted_columns_not_imported(self):
+        from trurohassoc.fit import original_test_rows
+        legacy = pd.DataFrame([dict(REGION_ID="R1", MODEL="M1", TESTED_TERM="ROH", CONVERGED=1, P_VALUE=.01,
+                                    Q_VALUE=.02, BONFERRONI_P=.03, FDR_ASSOCIATED=1)])
+        row = original_test_rows(legacy, {"R1"})[0]
+        self.assertFalse({"Q_VALUE", "BONFERRONI_P", "FDR_ASSOCIATED"} & set(row))
+        self.assertEqual(row["P_VALUE"], .01)
 
     def test_audit_only_and_profile(self):
         prof = self.base / "p.json"

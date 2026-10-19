@@ -24,7 +24,7 @@ c48ac30aa1815855d6b485b9957aaa160d4a4e5e5b24aca89f3e11e1069fcb5a  ./tests/e2e/fa
 0a5670c602f630ea4567ccf83caf7803f458323fa8f612336aba7f796a613fca  ./tests/e2e/run_e2e.sh
 3bcaf209c28e95b165dd76bb790250522f3f50f0f60da284529b83edc45cfa85  ./tests/run_tests.sh
 d6a1e58a2f9e6f4c432d9fbcec281029be9863f9b2391cdf8fbe9e96e80ef013  ./tests/synthetic.py
-89aada35f14e0279ae6c56c574777e4359313f3562951f8dd6021b9fc642f123  ./tests/test_package.py
+bd2a611866947fb153c4bf7ae7b09227f1728ed9d9c3f0871af19147da26d4f8  ./tests/test_package.py
 7a60d241cda34f8602d460df8393fe9a07b3240dd3dbf8f26d4d55a02f605c34  ./tests/validate_kinship.py
 0522bde94995c0675d8e8ba60dddccef9695e65da6bc2d224988d42f4cdfa9c5  ./tools/check_args.py
 47b29db5fdbe5fa78f78141caf75fd5db241b91f9eb845d8394e219af8216e54  ./tools/configure.py

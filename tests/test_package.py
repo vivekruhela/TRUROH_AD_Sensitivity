@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -233,8 +234,9 @@ class Integration(unittest.TestCase):
         page = (self.full / "report.html").read_text()
         self.assertIn("Should global ancestry be included", page)
         self.assertIn("data:image/png;base64", page)
-        self.assertNotIn("Holm", page)
-        self.assertNotIn("Bonferroni", page)
+        text = re.sub(r"data:[\w/+.-]+;base64,[A-Za-z0-9+/=]+", "", page)   # base64 figures can contain any letters
+        self.assertNotIn("Holm", text)
+        self.assertNotIn("Bonferroni", text)
         self.assertIn("no multiple-testing correction", page)
         self.assertEqual(common.read_json(self.full / "analysis_status.json")["state"], "completed")
 
